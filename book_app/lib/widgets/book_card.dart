@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 class BookCard extends StatelessWidget {
   final String title; // 書籍のタイトル
   final String author; // 書籍の著者
-  final String? imageUrl; // 書籍の画像 URL (オプショナル)
+  // final String? imageUrl; // 画像 URL はアイコン表示のためコメントアウト
+  final IconData? iconData; // 表示するアイコンのデータ
   final VoidCallback onDelete; // 削除ボタンが押されたときのコールバック
   final VoidCallback onTap; // カードがタップされたときのコールバック
 
@@ -14,7 +15,8 @@ class BookCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.author,
-    this.imageUrl,
+    // this.imageUrl,
+    this.iconData,
     required this.onDelete,
     required this.onTap,
   });
@@ -28,13 +30,10 @@ class BookCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // カードの形状 (角丸)
       // ListTile ウィジェットでカードの内容を構成
       child: ListTile(
-        // 左側に画像またはアイコンを表示
-        leading: imageUrl != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8), // 画像の角丸
-                child: Image.network(imageUrl!, width: 50, height: 50, fit: BoxFit.cover), // ネットワーク画像を表示
-              )
-            : const Icon(Icons.book_outlined), // 画像がない場合は本のアイコンを表示
+        // 左側にアイコンを表示 (iconData があればそれを、なければデフォルトアイコン)
+        leading: iconData != null
+            ? Icon(iconData, size: 40)
+            : const Icon(Icons.book_outlined, size: 40), // デフォルトアイコン
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), // タイトルを表示 (太字)
         subtitle: Text(author), // 著者を表示
         trailing: IconButton(icon: const Icon(Icons.delete), onPressed: onDelete), // 右側に削除ボタンを表示

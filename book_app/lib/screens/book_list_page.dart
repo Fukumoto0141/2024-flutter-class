@@ -1,12 +1,35 @@
 // 必要なパッケージをインポート
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import '../widgets/book_card.dart'; // BookCard ウィジェットをインポート
 import 'book_detail_page.dart'; // BookDetailPage をインポート
-import 'dart:typed_data'; // Uint8List を使用するためにインポート
-import 'dart:html' as html; // Web でのファイルアップロード用にインポート
+
+// アイコン情報を保持するクラス
+class IconInfo {
+  final String name;
+  final IconData icon;
+
+  IconInfo({required this.name, required this.icon});
+}
+
+// 利用可能なアイコンのリスト
+final List<IconInfo> bookIcons = [
+  IconInfo(name: '小説', icon: Icons.menu_book),
+  IconInfo(name: 'ビジネス書', icon: Icons.work),
+  IconInfo(name: '自己啓発', icon: Icons.self_improvement),
+  IconInfo(name: '技術書', icon: Icons.code),
+  IconInfo(name: '漫画・アート', icon: Icons.palette),
+  IconInfo(name: '趣味・実用', icon: Icons.sports_esports),
+  IconInfo(name: '学習参考書', icon: Icons.school),
+  IconInfo(name: '旅行ガイド', icon: Icons.flight_takeoff),
+  IconInfo(name: '歴史', icon: Icons.account_balance),
+  IconInfo(name: 'サイエンス', icon: Icons.science),
+  IconInfo(name: '健康・医学', icon: Icons.medical_services),
+  IconInfo(name: '料理', icon: Icons.restaurant),
+  IconInfo(name: '絵本', icon: Icons.child_friendly),
+  IconInfo(name: 'その他', icon: Icons.help_outline),
+];
 
 // 書籍リストページの StatefulWidget
 class BookListPage extends StatefulWidget {
@@ -18,93 +41,42 @@ class BookListPage extends StatefulWidget {
 
 // 書籍リストページの State
 class _BookListPageState extends State<BookListPage> {
-  // 各 TextField のコントローラー
   final titleController = TextEditingController();
   final authorController = TextEditingController();
   final reviewController = TextEditingController();
-  // 選択された画像のバイトデータ
-  Uint8List? _imageBytes;
-  // 選択された画像のファイル名
-  String? _fileName;
+  String? _selectedIconName; // Firestore保存用の選択されたアイコン名 (ジャンル名)
 
-  // 書籍を追加する非同期関数
   Future<void> addBook() async {
-    // 現在のユーザーを取得
     final user = FirebaseAuth.instance.currentUser;
-    // ユーザーが null の場合は処理を中断
     if (user == null) return;
 
-    String? imageUrl;
-    // 画像が選択されている場合
-    if (_imageBytes != null && _fileName != null) {
-      // Firebase Storage の参照を作成
-      final ref = FirebaseStorage.instance
-          .ref('books/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$_fileName');
-      // メタデータを設定 (画像形式を JPEG に指定)
-      final metadata = SettableMetadata(contentType: 'image/jpeg');
-      // 画像データをアップロード
-      await ref.putData(_imageBytes!, metadata);
-      // アップロードした画像の URL を取得
-      imageUrl = await ref.getDownloadURL();
-    }
-
-    // Firestore に書籍情報を追加
     await FirebaseFirestore.instance
-        .collection('users')
+        .collection('users') // 修正: usersコレクション
         .doc(user.uid)
         .collection('books')
         .add({
-      'title': titleController.text, // タイトル
-      'author': authorController.text, // 著者
-      'review': reviewController.text, // 感想
-      'imageUrl': imageUrl, // 画像 URL
-      'createdAt': FieldValue.serverTimestamp(), // 作成日時
+      'title': titleController.text,
+      'author': authorController.text,
+      'review': reviewController.text,
+      'iconName': _selectedIconName, // アイコン名 (ジャンル名) を保存
+      'createdAt': FieldValue.serverTimestamp(),
     });
 
-    // 各 TextField をクリア
     titleController.clear();
     authorController.clear();
     reviewController.clear();
-    // 状態を更新して画像選択をリセット
     setState(() {
-      _imageBytes = null;
-      _fileName = null;
+      _selectedIconName = null;
     });
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
-  // Web で画像を選択する関数
-  void pickImageWeb() {
-    // ファイルアップロード用の input 要素を作成
-    final input = html.FileUploadInputElement()..accept = 'image/*';
-    // input 要素をクリックしてファイル選択ダイアログを開く
-    input.click();
-    // ファイルが選択されたときの処理
-    input.onChange.listen((_) {
-      final file = input.files?.first;
-      if (file != null) {
-        _fileName = file.name; // ファイル名を取得
-        final reader = html.FileReader();
-        // ファイルを ArrayBuffer として読み込む
-        reader.readAsArrayBuffer(file);
-        // 読み込み完了時の処理
-        reader.onLoadEnd.listen((_) {
-          // 状態を更新して画像バイトデータを設定
-          setState(() {
-            _imageBytes = reader.result as Uint8List;
-          });
-        });
-      }
-    });
-  }
-
-  // 書籍を削除する非同期関数
   Future<void> deleteBook(String id) async {
-    // 現在のユーザーを取得
     final user = FirebaseAuth.instance.currentUser;
-    // ユーザーが null の場合は処理を中断
     if (user == null) return;
 
-    // Firestore から指定された ID の書籍を削除
     await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -113,133 +85,171 @@ class _BookListPageState extends State<BookListPage> {
         .delete();
   }
 
+  void _showAddBookModal(BuildContext context) {
+    String? localSelectedIconName = _selectedIconName; // モーダル内での選択状態
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              top: 20,
+              left: 20,
+              right: 20,
+            ),
+            child: SingleChildScrollView( // コンテンツがはみ出る場合にスクロール可能にする
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Text('書籍を追加', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'タイトル'),
+                  ),
+                  TextField(
+                    controller: authorController,
+                    decoration: const InputDecoration(labelText: '著者'),
+                  ),
+                  TextField(
+                    controller: reviewController,
+                    decoration: const InputDecoration(labelText: '感想'),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'ジャンル (アイコン)'),
+                    value: localSelectedIconName,
+                    items: bookIcons.map((IconInfo iconInfo) {
+                      return DropdownMenuItem<String>(
+                        value: iconInfo.name, // 保存するのはジャンル名
+                        child: Row(
+                          children: <Widget>[
+                            Icon(iconInfo.icon),
+                            const SizedBox(width: 10),
+                            Text(iconInfo.name),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setModalState(() {
+                        localSelectedIconName = newValue;
+                      });
+                      setState(() { // _BookListPageState の状態も更新
+                        _selectedIconName = newValue;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // addBook を呼び出す前に _selectedIconName を確定
+                      // onChanged で setState しているので、ここで明示的な setState は不要
+                      addBook();
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('追加'),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    ).whenComplete(() {
+      // モーダルが閉じたときにコントローラーをクリア
+      titleController.clear();
+      authorController.clear();
+      reviewController.clear();
+      setState(() {
+        _selectedIconName = null; // 選択もリセット
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 現在のユーザーを取得
     final user = FirebaseAuth.instance.currentUser;
-    // ユーザーが null の場合はログインが必要であることを表示
     if (user == null) {
       return const Scaffold(
         body: Center(child: Text('ログインが必要です')),
       );
     }
 
-    // メインの Scaffold を返す
     return Scaffold(
       appBar: AppBar(
-        title: const Text('書籍管理'), // AppBar のタイトル
+        title: const Text('書籍管理'),
         actions: [
-          // ログアウトボタン
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(), // ログアウト処理を実行
+            onPressed: () => FirebaseAuth.instance.signOut(),
           )
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16), // 全体にパディングを設定
-        child: Column(
-          children: [
-            // 画像選択エリア
-            GestureDetector(
-              onTap: pickImageWeb, // タップで画像選択処理を実行
-              child: Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200], // 背景色
-                  borderRadius: BorderRadius.circular(12), // 角丸
-                  // 画像が選択されていれば表示
-                  image: _imageBytes != null
-                      ? DecorationImage(
-                          image: MemoryImage(_imageBytes!), // メモリから画像を表示
-                          fit: BoxFit.cover, // 画像の表示方法
-                        )
-                      : null,
-                ),
-                // 画像が選択されていなければアイコンを表示
-                child: _imageBytes == null
-                    ? const Icon(Icons.add_a_photo, size: 40)
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 8), // スペーサー
-            // タイトル入力フィールド
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'タイトル'),
-            ),
-            // 著者入力フィールド
-            TextField(
-              controller: authorController,
-              decoration: const InputDecoration(labelText: '著者'),
-            ),
-            // 感想入力フィールド
-            TextField(
-              controller: reviewController,
-              decoration: const InputDecoration(labelText: '感想'),
-              maxLines: 2, // 複数行入力可能
-            ),
-            const SizedBox(height: 8), // スペーサー
-            // 追加ボタン
-            ElevatedButton.icon(
-              onPressed: addBook, // タップで書籍追加処理を実行
-              icon: const Icon(Icons.add),
-              label: const Text('追加'),
-            ),
-            const SizedBox(height: 16), // スペーサー
-            // 書籍リスト表示エリア
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                // Firestore から書籍リストを取得するストリーム
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .collection('books')
-                    .orderBy('createdAt', descending: true) // 作成日時の降順でソート
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  // データがない場合はローディング表示
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+        padding: const EdgeInsets.all(16),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('books')
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text('書籍がありません。追加してください。'));
+            }
 
-                  final books = snapshot.data!.docs; // 書籍リストを取得
-                  // ListView で書籍リストを表示
-                  return ListView.builder(
-                    itemCount: books.length, // リストのアイテム数
-                    itemBuilder: (context, index) {
-                      final book = books[index]; // 各書籍データ
-                      final bookData = book.data() as Map<String, dynamic>; // 書籍データを Map に変換
+            final books = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: books.length,
+              itemBuilder: (context, index) {
+                final book = books[index];
+                final bookData = book.data() as Map<String, dynamic>;
+                final iconName = bookData['iconName'] as String?;
+                IconData? displayIcon;
+                if (iconName != null) {
+                  final foundIconInfo = bookIcons.firstWhere((info) => info.name == iconName, orElse: () => bookIcons.last); // 見つからない場合は「その他」アイコン
+                  displayIcon = foundIconInfo.icon;
+                }
 
-                      // BookCard ウィジェットで書籍情報を表示
-                      return BookCard(
-                        title: bookData['title'],
-                        author: bookData['author'],
-                        imageUrl: bookData['imageUrl'],
-                        onTap: () {
-                          // タップで書籍詳細ページに遷移
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => BookDetailPage(
-                                title: bookData['title'],
-                                author: bookData['author'],
-                                review: bookData['review'] ?? '', // review が null の場合は空文字
-                                imageUrl: bookData['imageUrl'],
-                              ),
-                            ),
-                          );
-                        },
-                        onDelete: () => deleteBook(book.id), // 削除ボタンタップで書籍削除処理を実行
-                      );
-                    },
-                  );
-                },
-              ),
-            )
-          ],
+                return BookCard(
+                  title: bookData['title'],
+                  author: bookData['author'],
+                  iconData: displayIcon, // BookCard に IconData を渡す
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookDetailPage(
+                          title: bookData['title'],
+                          author: bookData['author'],
+                          review: bookData['review'] ?? '',
+                          iconName: iconName, // BookDetailPage に iconName を渡す
+                        ),
+                      ),
+                    );
+                  },
+                  onDelete: () => deleteBook(book.id),
+                );
+              },
+            );
+          },
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddBookModal(context),
+        child: const Icon(Icons.add),
       ),
     );
   }
