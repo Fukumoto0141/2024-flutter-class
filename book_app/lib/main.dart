@@ -15,7 +15,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform, // 現在のプラットフォーム用の Firebase 設定を使用
   );
   // MyApp ウィジェットを実行
-  runApp(const MyApp());
+  runApp(
+    const MyApp(),
+  );
 }
 
 // MyApp ウィジェット: アプリケーションのルートウィジェット

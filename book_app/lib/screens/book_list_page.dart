@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/book_card.dart'; // BookCard ウィジェットをインポート
 import 'book_detail_page.dart'; // BookDetailPage をインポート
+import '../widgets/custom_text_field.dart';
 
 // アイコン情報を保持するクラス
 class IconInfo {
@@ -93,75 +94,74 @@ class _BookListPageState extends State<BookListPage> {
       isScrollControlled: true,
       builder: (BuildContext ctx) {
         return StatefulBuilder(
-            builder: (BuildContext context, StateSetter setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              top: 20,
-              left: 20,
-              right: 20,
-            ),
-            child: SingleChildScrollView( // コンテンツがはみ出る場合にスクロール可能にする
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const Text('書籍を追加', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: 'タイトル'),
-                  ),
-                  TextField(
-                    controller: authorController,
-                    decoration: const InputDecoration(labelText: '著者'),
-                  ),
-                  TextField(
-                    controller: reviewController,
-                    decoration: const InputDecoration(labelText: '感想'),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 20),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'ジャンル (アイコン)'),
-                    value: localSelectedIconName,
-                    items: bookIcons.map((IconInfo iconInfo) {
-                      return DropdownMenuItem<String>(
-                        value: iconInfo.name, // 保存するのはジャンル名
-                        child: Row(
-                          children: <Widget>[
-                            Icon(iconInfo.icon),
-                            const SizedBox(width: 10),
-                            Text(iconInfo.name),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setModalState(() {
-                        localSelectedIconName = newValue;
-                      });
-                      setState(() { // _BookListPageState の状態も更新
-                        _selectedIconName = newValue;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // addBook を呼び出す前に _selectedIconName を確定
-                      // onChanged で setState しているので、ここで明示的な setState は不要
-                      addBook();
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('追加'),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                top: 20,
+                left: 20,
+                right: 20,
               ),
-            ),
-          );
-        });
+              child: SingleChildScrollView( // コンテンツがはみ出る場合にスクロール可能にする
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text('書籍を追加', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 20),
+                    CustomTextField(
+                      controller: titleController,
+                      labelText: 'タイトル',
+                    ),
+                    CustomTextField(
+                      controller: authorController,
+                      labelText: '著者',
+                    ),
+                    CustomTextField(
+                      controller: reviewController,
+                      labelText: '感想',
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'ジャンル (アイコン)'),
+                      value: localSelectedIconName,
+                      items: bookIcons.map((IconInfo iconInfo) {
+                        return DropdownMenuItem<String>(
+                          value: iconInfo.name, // 保存するのはジャンル名
+                          child: Row(
+                            children: <Widget>[
+                              Icon(iconInfo.icon),
+                              const SizedBox(width: 10),
+                              Text(iconInfo.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setModalState(() {
+                          localSelectedIconName = newValue;
+                        });
+                        setState(() { // _BookListPageState の状態も更新
+                          _selectedIconName = newValue;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // addBook を呼び出す前に _selectedIconName を確定
+                        // onChanged で setState しているので、ここで明示的な setState は不要
+                        addBook();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('追加'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       },
     ).whenComplete(() {
       // モーダルが閉じたときにコントローラーをクリア

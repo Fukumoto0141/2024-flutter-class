@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 // Firebase Auth パッケージをインポート
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer';
 
 // 書籍関連の Firestore 操作を行うサービスクラス
 class BookService {
@@ -25,32 +26,52 @@ class BookService {
 
   // 書籍を追加する非同期関数
   Future<void> addBook(String title, String author) async {
-    // 書籍コレクションに新しいドキュメントを追加
-    await _bookCollection.add({
-      'title': title, // タイトル
-      'author': author, // 著者
-      'createdAt': FieldValue.serverTimestamp(), // 作成日時 (サーバータイムスタンプ)
-    });
+    try {
+      // 書籍コレクションに新しいドキュメントを追加
+      await _bookCollection.add({
+        'title': title, // タイトル
+        'author': author, // 著者
+        'createdAt': FieldValue.serverTimestamp(), // 作成日時 (サーバータイムスタンプ)
+      });
+    } catch (e) {
+      log('AddBook Error: $e');
+      rethrow;
+    }
   }
 
   // 書籍情報を更新する非同期関数
   Future<void> updateBook(String bookId, String title, String author) async {
-    // 指定された bookId のドキュメントを更新
-    await _bookCollection.doc(bookId).update({
-      'title': title, // タイトル
-      'author': author, // 著者
-    });
+    try {
+      // 指定された bookId のドキュメントを更新
+      await _bookCollection.doc(bookId).update({
+        'title': title, // タイトル
+        'author': author, // 著者
+      });
+    } catch (e) {
+      log('UpdateBook Error: $e');
+      rethrow;
+    }
   }
 
   // 書籍を削除する非同期関数
   Future<void> deleteBook(String bookId) async {
-    // 指定された bookId のドキュメントを削除
-    await _bookCollection.doc(bookId).delete();
+    try {
+      // 指定された bookId のドキュメントを削除
+      await _bookCollection.doc(bookId).delete();
+    } catch (e) {
+      log('DeleteBook Error: $e');
+      rethrow;
+    }
   }
 
   // 書籍リストのストリームを返す関数
   Stream<QuerySnapshot<Map<String, dynamic>>> getBookStream() {
-    // 書籍コレクションの変更を監視するストリームを返す (作成日時の降順でソート)
-    return _bookCollection.orderBy('createdAt', descending: true).snapshots();
+    try {
+      // 書籍コレクションの変更を監視するストリームを返す (作成日時の降順でソート)
+      return _bookCollection.orderBy('createdAt', descending: true).snapshots();
+    } catch (e) {
+      log('GetBookStream Error: $e');
+      rethrow;
+    }
   }
 }

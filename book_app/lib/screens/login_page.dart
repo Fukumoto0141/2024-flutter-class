@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 // Firebase Auth パッケージをインポート
 import 'package:firebase_auth/firebase_auth.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/custom_button.dart';
 
 // ログインページの StatefulWidget
 class LoginPage extends StatefulWidget {
@@ -72,22 +74,22 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16), // スペーサー
                     // メールアドレス入力フィールド
-                    TextField(
+                    CustomTextField(
                       controller: emailController,
-                      decoration: const InputDecoration(labelText: 'メールアドレス'),
+                      labelText: 'メールアドレス',
                     ),
                     const SizedBox(height: 8), // スペーサー
                     // パスワード入力フィールド
-                    TextField(
+                    CustomTextField(
                       controller: passwordController,
+                      labelText: 'パスワード',
                       obscureText: true, // パスワードを隠す
-                      decoration: const InputDecoration(labelText: 'パスワード'),
                     ),
                     const SizedBox(height: 16), // スペーサー
                     // 認証ボタン (ログインまたは登録)
-                    ElevatedButton(
+                    CustomButton(
                       onPressed: handleAuth, // ボタンが押されたら認証処理を実行
-                      child: Text(isLogin ? 'ログイン' : '登録'),
+                      text: isLogin ? 'ログイン' : '登録',
                     ),
                     // モード切り替えボタン (新規登録はこちらまたはログインはこちら)
                     TextButton(
