@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 // Firebase Auth パッケージをインポート
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 
@@ -19,6 +20,8 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   // パスワード入力用の TextEditingController
   final passwordController = TextEditingController();
+  // ニックネーム入力用の TextEditingController
+  final nicknameController = TextEditingController();
   // ログインモードか新規登録モードかを管理するフラグ (true: ログイン, false: 新規登録)
   bool isLogin = true;
   // エラーメッセージを格納する文字列
@@ -36,11 +39,17 @@ class _LoginPageState extends State<LoginPage> {
         );
       } else {
         // 新規登録モードの場合
-        // メールアドレスとパスワードでユーザーを作成
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: emailController.text,
           password: passwordController.text,
         );
+        // ユーザー作成後にニックネームを Firestore に保存
+        final user = credential.user;
+        if (user != null) {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'nickname': nicknameController.text,
+          });
+        }
       }
     } on FirebaseAuthException catch (e) {
       // Firebase Auth 関連のエラーが発生した場合
@@ -73,6 +82,13 @@ class _LoginPageState extends State<LoginPage> {
                       style: Theme.of(context).textTheme.headlineMedium, // テキストスタイル
                     ),
                     const SizedBox(height: 16), // スペーサー
+                    // ニックネーム入力フィールド (新規登録時のみ)
+                    if (!isLogin)
+                      CustomTextField(
+                        controller: nicknameController,
+                        labelText: 'ニックネーム',
+                      ),
+                    const SizedBox(height: 8), // スペーサー
                     // メールアドレス入力フィールド
                     CustomTextField(
                       controller: emailController,

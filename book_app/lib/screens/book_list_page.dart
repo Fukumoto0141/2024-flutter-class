@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/book_card.dart'; // BookCard ウィジェットをインポート
 import 'book_detail_page.dart'; // BookDetailPage をインポート
+import 'settings_page.dart'; // SettingsPage をインポート
 import '../widgets/custom_text_field.dart';
 
 // アイコン情報を保持するクラス
@@ -188,9 +189,14 @@ class _BookListPageState extends State<BookListPage> {
         title: const Text('書籍管理'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(),
-          )
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            },
+          ),
         ],
       ),
       body: Padding(

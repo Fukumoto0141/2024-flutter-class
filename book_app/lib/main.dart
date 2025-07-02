@@ -5,6 +5,7 @@ import 'firebase_options.dart'; // Firebase の設定オプションをインポ
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth パッケージをインポート
 import 'screens/book_list_page.dart'; // 書籍リストページをインポート
 import 'screens/login_page.dart'; // ログインページをインポート
+import 'screens/timeline_page.dart'; // タイムラインページをインポート
 
 // main 関数: アプリケーションのエントリーポイント
 void main() async {
@@ -40,11 +41,48 @@ class MyApp extends StatelessWidget {
           }
           // データ（ユーザー情報）がある場合は書籍リストページを表示
           if (snapshot.hasData) {
-            return const BookListPage();
+            return const HomePage();
           }
           // データがない場合はログインページを表示
           return const LoginPage();
         },
+      ),
+    );
+  }
+}
+
+// ホーム画面: タイムラインとマイ書籍の切り替えを行うボトムナビ付き
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
+  static const List<Widget> _pages = [
+    const TimelinePage(),
+    const BookListPage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.timeline), label: 'タイムライン'),
+          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'マイ書籍'),
+        ],
+        onTap: _onItemTapped,
       ),
     );
   }
