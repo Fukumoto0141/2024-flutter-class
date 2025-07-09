@@ -61,6 +61,7 @@ class _TimelinePageState extends State<TimelinePage> {
                   displayIcon = info.icon;
                 }
                 final posterName = data['userNickname'] as String? ?? data['userEmail'] as String? ?? '';
+                final postId = snapshot.data!.docs[index].id;
                 return Card(
                   elevation: 3,
                   margin: const EdgeInsets.symmetric(vertical: 8),
@@ -82,6 +83,14 @@ class _TimelinePageState extends State<TimelinePage> {
                                 fontSize: 12, color: Colors.grey)),
                       ],
                     ),
+                    trailing: (user != null &&
+                              ((data['userId'] != null && data['userId'] == user.uid) ||
+                               data['userEmail'] == user.email))
+                          ? IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deletePost(postId),
+                            )
+                          : null,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -199,6 +208,7 @@ class _TimelinePageState extends State<TimelinePage> {
                                 'iconName': book['iconName'],
                                 'userEmail': user.email,
                                 'userNickname': nickname,
+                                'userId': user.uid,  // 投稿者のユーザーIDを保存
                                 'createdAt': FieldValue.serverTimestamp(),
                               });
                               Navigator.of(context).pop();
@@ -216,5 +226,15 @@ class _TimelinePageState extends State<TimelinePage> {
         );
       },
     );
+  }
+
+  // 自身の投稿を削除するメソッド
+  Future<void> _deletePost(String postId) async {
+    try {
+      await FirebaseFirestore.instance.collection('posts').doc(postId).delete();
+    } catch (e) {
+      // エラー時はログに出力（必要に応じてハンドリング）
+      debugPrint('Error deleting post: $e');
+    }
   }
 }
